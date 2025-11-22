@@ -55,13 +55,119 @@ A comprehensive Flutter application that uses ML Kit for real-time driver drowsi
 - **Dark Mode Theme:** Futuristic neon-accented UI design
 
 ---
+# Emergency Contacts & Automated WhatsApp Voice Message (n8n)
 
+## Overview
+This project includes an automated emergency-notification flow using n8n to send a voice message on WhatsApp to one or more emergency contacts. The flow:
+1. Receives a trigger (e.g., app button, webhook).
+2. Converts a text template to audio (TTS).
+3. Uploads the audio to WhatsApp (media upload) or sends via Twilio/WhatsApp API.
+4. Sends the audio message to the contact(s).
+
+> Note: WhatsApp "voice messages" are typically sent as audio media via the WhatsApp Business API (or via Twilio's WhatsApp API). You will need a WhatsApp Business API or Twilio account and API credentials.
+
+---
+
+## Emergency contacts (example format)
+Replace the example entries below with your real contacts.
+
+- name: "Ali Khan"
+  relation: "Father"
+  phone: "+923001234567"
+  preferred_language: "ur"
+  message_template: "This is an emergency. Please call me back immediately."
+
+- name: "Sara Ahmed"
+  relation: "Friend"
+  phone: "+447XXXXXXXXX"
+  preferred_language: "en"
+  message_template: "Emergency! Please check in at once."
+
+(You can store these in a JSON/YAML file or a small DB; n8n can fetch them at run time.)
+
+---
+
+## n8n Workflow (high-level)
+1. Trigger node
+   - Webhook or whatever event triggers the emergency flow.
+
+2. Set or Function node
+   - Load contact list, select target(s), prepare message text (use contact.preferred_language for localization).
+
+3. Text-to-Speech (TTS) node / HTTP request
+   - Use Google Cloud Text-to-Speech, Amazon Polly, ElevenLabs, or another TTS provider.
+   - Output binary audio (mp3/ogg).
+
+   Example (pseudo):
+   - HTTP Request to TTS API → receive audio binary.
+
+4. Upload media to WhatsApp (or Twilio)
+   - WhatsApp Cloud API:
+     - POST /v13.0/{PHONE_NUMBER_ID}/media (multipart/form-data) to upload binary. Returns media id.
+     - Then POST /v13.0/{PHONE_NUMBER_ID}/messages with body:
+       {
+         "messaging_product": "whatsapp",
+         "to": "<recipient_phone>",
+         "type": "audio",
+         "audio": { "id": "<MEDIA_ID>" }
+       }
+     - Header: Authorization: Bearer <WHATSAPP_TOKEN>
+
+   - Twilio WhatsApp API alternative:
+     - Upload or host the audio and send as media message through Twilio's Messages API (or use Twilio Programmable Voice if you want an actual call).
 ## 🏗️ Architecture
 
 ### Project Structure
 
 ```
-No Structure for Demo Repository
+─.dart_tool
+├───.idea
+│   ├───caches
+│   └───libraries
+├───android
+│   └───app
+│       └───src
+│           └───main
+│               ├───java
+│               │   └───io
+│               │       └───flutter
+│               │           └───plugins
+│               └───kotlin
+│                   └───com
+│                       └───example
+│                           └───driver_monitoring_app
+├───assets
+│   ├───fonts
+│   └───sounds
+├───build
+├───ios
+│   ├───Flutter
+│   │   └───ephemeral
+│   └───Runner
+└───lib
+    ├───app
+    ├───assets
+    │   ├───fonts
+    │   └───sound
+    ├───core
+    │   ├───constants
+    │   ├───services
+    │   ├───theme
+    │   └───utils
+    ├───data
+    │   ├───database
+    │   ├───models
+    │   └───repositories
+    ├───presentation
+    │   ├───providers
+    │   ├───Screens
+    │   └───widgets
+    └───services
+        ├───location_service
+        ├───ml_service
+        ├───notification_service
+        └───sms_service
+
 ```
 
 
